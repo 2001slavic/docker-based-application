@@ -1,0 +1,58 @@
+services:
+  # PostgreSQL
+  db:
+    container_name: tema2-db
+    build:
+      context: db # build din directorul db
+    restart: always
+    # asteapta pentru initializarea completa a db-ului
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # salveaza baza de date persistenta
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - backnet
+      - adminernet
+    environment:
+      POSTGRES_USER: 'dev'
+      POSTGRES_PASSWORD: 'dev'
+      POSTGRES_DB: 'db'
+
+  # Python Flask
+  backend:
+    container_name: tema2-api
+    build:
+      context: backend
+    restart: always
+    ports:
+      - 6000:6000
+    networks:
+      - backnet
+    # asteapta pentru initializarea completa a db-ului
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Aplicatie de management db
+  adminer:
+    container_name: tema2-adminer
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    depends_on: 
+      db:
+        condition: service_healthy
+    networks:
+      - adminernet
+
+volumes:
+  db-data:
+
+networks:
+  backnet: # retea in care se afla API-ul si db-ul
+  adminernet: # retea in care se afla db-ul si tool-ul de management
